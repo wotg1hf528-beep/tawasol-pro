@@ -1,16 +1,18 @@
 /**
  * ==============================================================================
- * TAWASOL PRO - CORE DATABASE & ENCRYPTION ENGINE
- * Version: 3.0.0 (Ultimate Secure Build)
+ * TAWASOL PRO - CORE DATABASE, AUTH & ENCRYPTION ENGINE
+ * Version: 3.5.0 (Google Auth & Unique Username Integrated)
  * Architecture: Modular, Object-Oriented, IndexedDB + Firebase Realtime
  * ==============================================================================
  */
 
+// استيراد مكتبات Firebase (بما في ذلك المصادقة Authentication وقواعد البيانات)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, onValue, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, onValue, set, serverTimestamp, get, update } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
 
 // ==============================================================================
-// 1. إعدادات خوادم Firebase (مفاتيحك الأصلية)
+// 1. إعدادات خوادم Firebase
 // ==============================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyBjO4t3yubdjEz4lfUaXJfWh_AT6mMfyLg",
@@ -26,31 +28,22 @@ const firebaseConfig = {
 // تهيئة الاتصال بالسيرفر
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
 // ==============================================================================
 // 2. محرك التشفير المتقدم (Advanced Crypto Engine - E2EE Simulation)
 // ==============================================================================
 const CryptoEngine = {
-    /**
-     * المفتاح السري الأساسي للتشفير - في التطبيقات الحقيقية يتم توليده ديناميكياً
-     */
     masterKey: "TAWASOL_SECURE_KEY_2026_ULTRA_XOR",
     
-    /**
-     * دالة لتشفير النصوص قبل إرسالها للسيرفر
-     * @param {string} text - النص المراد تشفيره
-     * @returns {string} - النص المشفر بصيغة Base64
-     */
     encryptMessage: function(text) {
         if (!text) return "";
         try {
             let encrypted = '';
             for (let i = 0; i < text.length; i++) {
-                // دمج الحرف مع المفتاح السري باستخدام بوابة XOR
                 const charCode = text.charCodeAt(i) ^ this.masterKey.charCodeAt(i % this.masterKey.length);
                 encrypted += String.fromCharCode(charCode);
             }
-            // تحويل النتيجة إلى Base64 لمنع ضياع البيانات
             return btoa(unescape(encodeURIComponent(encrypted)));
         } catch (error) {
             console.error("فشل التشفير:", error);
@@ -58,15 +51,9 @@ const CryptoEngine = {
         }
     },
 
-    /**
-     * دالة لفك تشفير النصوص المستلمة من السيرفر
-     * @param {string} hash - النص المشفر
-     * @returns {string} - النص الأصلي
-     */
     decryptMessage: function(hash) {
         if (!hash) return "";
         try {
-            // تحويل من Base64
             const decoded = decodeURIComponent(escape(atob(hash)));
             let decrypted = '';
             for (let i = 0; i < decoded.length; i++) {
@@ -75,14 +62,10 @@ const CryptoEngine = {
             }
             return decrypted;
         } catch (error) {
-            // إذا فشل الفك (رسالة غير مشفرة مثلاً) نرجعها كما هي
             return hash; 
         }
     },
 
-    /**
-     * دالة لتشفير رمز الـ PIN الخاص بالمستخدم محلياً
-     */
     hashPin: function(pin) {
         return btoa(pin + "_TAWASOL_SALT");
     }
@@ -96,22 +79,17 @@ const LocalDB = {
     dbVersion: 1,
     dbInstance: null,
 
-    /**
-     * تهيئة قاعدة البيانات المحلية في متصفح المستخدم
-     */
     init: function() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.dbVersion);
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                // إنشاء جدول الرسائل
                 if (!db.objectStoreNames.contains("messages")) {
                     const msgStore = db.createObjectStore("messages", { keyPath: "id" });
                     msgStore.createIndex("timestamp", "timestamp", { unique: false });
                     msgStore.createIndex("roomId", "roomId", { unique: false });
                 }
-                // إنشاء جدول المستخدمين
                 if (!db.objectStoreNames.contains("contacts")) {
                     db.createObjectStore("contacts", { keyPath: "uid" });
                 }
@@ -130,9 +108,6 @@ const LocalDB = {
         });
     },
 
-    /**
-     * حفظ رسالة في الجهاز (للقراءة بدون إنترنت)
-     */
     saveMessage: function(messageObj) {
         if (!this.dbInstance) return;
         const transaction = this.dbInstance.transaction(["messages"], "readwrite");
@@ -140,9 +115,6 @@ const LocalDB = {
         store.put(messageObj);
     },
 
-    /**
-     * استرجاع جميع الرسائل لغرفة معينة
-     */
     getMessages: function() {
         return new Promise((resolve, reject) => {
             if (!this.dbInstance) { resolve([]); return; }
@@ -166,7 +138,6 @@ const NetworkManager = {
         window.addEventListener('online', () => this.handleStatusChange(true));
         window.addEventListener('offline', () => this.handleStatusChange(false));
         
-        // مراقبة اتصال Firebase
         const connectedRef = ref(db, ".info/connected");
         onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
@@ -191,10 +162,11 @@ const NetworkManager = {
 };
 
 // ==============================================================================
-// 5. نظام المصادقة والحسابات (Authentication Manager)
+// 5. نظام المصادقة والحسابات (Authentication Manager - Google + Usernames)
 // ==============================================================================
 const AuthManager = {
     currentUser: null,
+    tempGoogleUser: null, // حفظ مؤقت لبيانات جوجل قبل إنشاء اسم المستخدم
 
     init: function() {
         this.checkSession();
@@ -202,16 +174,22 @@ const AuthManager = {
     },
 
     bindEvents: function() {
-        // ربط نموذج التسجيل
+        // زر تسجيل الدخول بواسطة جوجل
+        const btnGoogle = document.getElementById('btn-google-login');
+        if(btnGoogle) {
+            btnGoogle.addEventListener('click', () => this.loginWithGoogle());
+        }
+
+        // نموذج حجز اسم المستخدم والـ PIN
         const form = document.getElementById('form-register');
         if(form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                this.registerNewUser();
+                this.claimUsernameAndRegister();
             });
         }
         
-        // ربط زر تسجيل الخروج
+        // زر تسجيل الخروج
         const btnLogout = document.getElementById('btn-logout');
         if(btnLogout) {
             btnLogout.addEventListener('click', () => this.logout());
@@ -226,42 +204,105 @@ const AuthManager = {
         }
     },
 
-    registerNewUser: function() {
+    loginWithGoogle: async function() {
+        const provider = new GoogleAuthProvider();
+        try {
+            if(window.UI) window.UI.showToast("جاري الاتصال بـ Google...", "info");
+            
+            // فتح نافذة جوجل
+            const result = await signInWithPopup(auth, provider);
+            this.tempGoogleUser = result.user;
+            
+            // فحص هل المستخدم موجود مسبقاً في قاعدة بياناتنا
+            this.checkIfUserExists(result.user.uid);
+            
+        } catch (error) {
+            console.error("خطأ في تسجيل الدخول:", error);
+            if(window.UI) window.UI.showToast("فشل تسجيل الدخول: " + error.message, "error");
+        }
+    },
+
+    checkIfUserExists: async function(uid) {
+        const userRef = ref(db, `users/${uid}`);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists()) {
+            // مستخدم قديم -> احفظ بياناته محلياً واطلب منه الـ PIN
+            const userData = snapshot.val();
+            userData.uid = uid;
+            
+            localStorage.setItem('tw_user_profile', JSON.stringify(userData));
+            this.currentUser = userData;
+            
+            if(window.UI) {
+                window.UI.showToast("أهلاً بعودتك!", "success");
+                window.UI.showScreen('screen-lock'); 
+            }
+        } else {
+            // مستخدم جديد -> اطلب منه اختيار اسم مستخدم و PIN
+            if(window.UI) {
+                window.UI.showToast("تم التحقق من حسابك، اختر اسماً لك", "success");
+                window.UI.showScreen('screen-setup-profile'); 
+                
+                // ملء الاسم تلقائياً من جوجل
+                const nameInput = document.getElementById('reg-fullname');
+                if(nameInput) nameInput.value = this.tempGoogleUser.displayName;
+            }
+        }
+    },
+
+    claimUsernameAndRegister: async function() {
+        if (!this.tempGoogleUser) return;
+
         const fullname = document.getElementById('reg-fullname').value.trim();
-        const username = document.getElementById('reg-username').value.trim();
+        let username = document.getElementById('reg-username').value.trim().toLowerCase();
         const pin = document.getElementById('reg-pin').value.trim();
 
-        if (!fullname || !username || pin.length !== 4) {
-            if(window.UI) window.UI.showToast("الرجاء إكمال جميع الحقول بشكل صحيح", "error");
+        username = username.replace('@', ''); // إزالة الـ @ إذا أدخلها المستخدم
+        
+        const isValidUsername = /^[a-z0-9_]{3,15}$/.test(username);
+        if (!fullname || !isValidUsername || pin.length !== 4) {
+            if(window.UI) window.UI.showToast("تأكد من اسم المستخدم (3-15 حرف إنجليزي) والـ PIN (4 أرقام)", "error");
             return;
         }
 
-        // تكوين كائن المستخدم
-        const userData = {
-            uid: "USER_" + Date.now().toString(36) + Math.random().toString(36).substr(2),
-            fullname: fullname,
-            username: "@" + username.replace('@', ''),
-            createdAt: Date.now()
-        };
+        try {
+            if(window.UI) window.UI.showToast("جاري إنشاء الحساب وحجز الاسم...", "info");
+            
+            // التحديث المزدوج: حجز الاسم + إنشاء ملف المستخدم (Atomic Operation)
+            const updates = {};
+            updates[`usernames/${username}`] = this.tempGoogleUser.uid;
+            updates[`users/${this.tempGoogleUser.uid}`] = {
+                fullname: fullname,
+                username: "@" + username,
+                email: this.tempGoogleUser.email,
+                avatar: this.tempGoogleUser.photoURL,
+                createdAt: serverTimestamp()
+            };
 
-        // حفظ البيانات محلياً
-        localStorage.setItem('tw_user_profile', JSON.stringify(userData));
-        localStorage.setItem('tw_pin', pin); // في الواقع يجب تشفيره
-        
-        this.currentUser = userData;
+            await update(ref(db), updates);
 
-        // تسجيل المستخدم في Firebase
-        const userRef = ref(db, 'users/' + this.currentUser.uid);
-        set(userRef, {
-            fullname: userData.fullname,
-            username: userData.username,
-            lastSeen: serverTimestamp()
-        });
+            // حفظ محلي
+            const userData = {
+                uid: this.tempGoogleUser.uid,
+                fullname: fullname,
+                username: "@" + username,
+                avatar: this.tempGoogleUser.photoURL
+            };
 
-        if(window.UI) {
-            window.UI.showToast("تم إنشاء الحساب ومفاتيح التشفير بنجاح", "success");
-            window.UI.showScreen('app-main');
-            ChatManager.updateProfileUI();
+            localStorage.setItem('tw_user_profile', JSON.stringify(userData));
+            localStorage.setItem('tw_pin', pin); // يفضل تشفيره مستقبلاً عبر CryptoEngine
+            this.currentUser = userData;
+
+            if(window.UI) {
+                window.UI.showToast("تم إنشاء الحساب ومفاتيح التشفير بنجاح!", "success");
+                window.UI.showScreen('app-main');
+                ChatManager.updateProfileUI();
+            }
+
+        } catch (error) {
+            console.error("فشل حجز الاسم:", error);
+            if(window.UI) window.UI.showToast("عذراً، اسم المستخدم محجوز مسبقاً، اختر غيره!", "error");
         }
     },
 
@@ -269,7 +310,9 @@ const AuthManager = {
         if(confirm("تحذير: سيتم مسح جميع بياناتك ورسائلك من هذا الجهاز للأبد. هل أنت متأكد؟")) {
             localStorage.clear();
             indexedDB.deleteDatabase(LocalDB.dbName);
-            location.reload();
+            signOut(auth).then(() => {
+                location.reload();
+            });
         }
     }
 };
@@ -304,7 +347,6 @@ const ChatManager = {
         const msgInput = document.getElementById('message-input');
 
         if(sendBtn && msgInput) {
-            // الإرسال عبر الزر
             sendBtn.addEventListener('click', () => {
                 if(!sendBtn.querySelector('.icon-send').classList.contains('hidden')) {
                     this.sendMessage();
@@ -313,7 +355,6 @@ const ChatManager = {
                 }
             });
 
-            // الإرسال عبر الكيبورد (Enter)
             msgInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -330,8 +371,16 @@ const ChatManager = {
         // تحديث القائمة الجانبية
         const nameEl = document.getElementById('my-display-name');
         const avatarEl = document.getElementById('my-avatar');
+        
         if(nameEl) nameEl.innerText = user.fullname;
-        if(avatarEl) avatarEl.innerText = user.fullname.charAt(0).toUpperCase();
+        if(avatarEl) {
+            // عرض صورة جوجل إذا توفرت، وإلا الحرف الأول من الاسم
+            if (user.avatar) {
+                avatarEl.innerHTML = `<img src="${user.avatar}" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                avatarEl.innerText = user.fullname.charAt(0).toUpperCase();
+            }
+        }
 
         // تحديث صفحة الإعدادات
         const setName = document.getElementById('settings-name');
@@ -339,7 +388,13 @@ const ChatManager = {
         const setAvatar = document.getElementById('settings-avatar');
         if(setName) setName.innerText = user.fullname;
         if(setHandle) setHandle.innerText = user.username;
-        if(setAvatar) setAvatar.innerText = user.fullname.charAt(0).toUpperCase();
+        if(setAvatar) {
+            if (user.avatar) {
+                setAvatar.innerHTML = `<img src="${user.avatar}" alt="Avatar" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                setAvatar.innerText = user.fullname.charAt(0).toUpperCase();
+            }
+        }
     },
 
     sendMessage: function() {
@@ -366,9 +421,13 @@ const ChatManager = {
             .then(() => {
                 input.value = '';
                 input.style.height = 'auto'; // إعادة حجم المربع
-                // الزر يرجع مايكروفون يتم عبر app.js
-                document.querySelector('.icon-send').classList.add('hidden');
-                document.querySelector('.icon-mic').classList.remove('hidden');
+                // الزر يرجع مايكروفون
+                const sendIcon = document.querySelector('.icon-send');
+                const micIcon = document.querySelector('.icon-mic');
+                if(sendIcon && micIcon) {
+                    sendIcon.classList.add('hidden');
+                    micIcon.classList.remove('hidden');
+                }
             })
             .catch((error) => {
                 console.error("فشل الإرسال:", error);
@@ -379,20 +438,16 @@ const ChatManager = {
     renderMessageUI: function(msgObj) {
         if (!this.messagesContainer) return;
 
-        // التحقق مما إذا كانت الرسالة لي أم للطرف الآخر
         const isMine = AuthManager.currentUser && msgObj.senderId === AuthManager.currentUser.uid;
         
-        // فك تشفير المحتوى
         let decryptedText = "رسالة مشفرة غير مدعومة";
         if (msgObj.type === "text") {
             decryptedText = CryptoEngine.decryptMessage(msgObj.payload);
         }
 
-        // تنسيق الوقت
         const dateObj = new Date(msgObj.timestamp);
         const timeString = dateObj.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
 
-        // بناء عنصر الرسالة
         const msgElement = document.createElement('div');
         msgElement.className = `msg ${isMine ? 'msg-mine' : 'msg-other'}`;
         msgElement.id = msgObj.id;
@@ -411,17 +466,10 @@ const ChatManager = {
         `;
 
         msgElement.innerHTML = html;
-        
-        // إضافة الرسالة للحاوية
         this.messagesContainer.appendChild(msgElement);
-        
-        // التمرير للأسفل تلقائياً
         this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
     },
 
-    /**
-     * دالة لحماية التطبيق من هجمات XSS
-     */
     escapeHTML: function(str) {
         return str.replace(/[&<>'"]/g, 
             tag => ({
@@ -441,7 +489,7 @@ const ChatManager = {
 window.addEventListener('load', () => {
     NetworkManager.init();
     AuthManager.init();
-    // تأخير تشغيل الدردشة قليلاً لضمان تحميل الواجهات
+    
     setTimeout(() => {
         if (AuthManager.currentUser) {
             ChatManager.init();
@@ -449,10 +497,9 @@ window.addEventListener('load', () => {
     }, 500);
 });
 
-// تصدير للوصول إليها من ملفات أخرى إذا لزم الأمر
+// تصدير للكائنات للوصول إليها برمجياً عند الحاجة
 window.TawasolDB = {
     Crypto: CryptoEngine,
     Auth: AuthManager,
     Chat: ChatManager
 };
-
