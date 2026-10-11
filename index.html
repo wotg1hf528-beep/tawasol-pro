@@ -1,1 +1,488 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tawasol Pro - Secure Messenger</title>
+    
+    <!-- ملف التصميم الذي سنقوم بكتابته في الخطوة القادمة -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- خطوط جوجل الاحترافية -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- =========================================================
+         1. شاشة القفل والأمان (PIN Lock Screen)
+    ========================================================= -->
+    <div id="screen-lock" class="screen-overlay hidden">
+        <div class="lock-container">
+            <div class="icon-container">
+                <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h2 class="auth-title">التطبيق مقفل</h2>
+            <p class="auth-subtitle">يرجى إدخال رمز PIN للمتابعة</p>
+            <div class="pin-inputs">
+                <input type="password" maxlength="1" class="pin-box" readonly>
+                <input type="password" maxlength="1" class="pin-box" readonly>
+                <input type="password" maxlength="1" class="pin-box" readonly>
+                <input type="password" maxlength="1" class="pin-box" readonly>
+            </div>
+            <div class="numpad">
+                <button class="num-btn" data-num="1">1</button>
+                <button class="num-btn" data-num="2">2</button>
+                <button class="num-btn" data-num="3">3</button>
+                <button class="num-btn" data-num="4">4</button>
+                <button class="num-btn" data-num="5">5</button>
+                <button class="num-btn" data-num="6">6</button>
+                <button class="num-btn" data-num="7">7</button>
+                <button class="num-btn" data-num="8">8</button>
+                <button class="num-btn" data-num="9">9</button>
+                <button class="num-btn action" id="btn-pin-clear">C</button>
+                <button class="num-btn" data-num="0">0</button>
+                <button class="num-btn action" id="btn-pin-submit">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         2. شاشة المصادقة وتسجيل الدخول (Auth Screen)
+    ========================================================= -->
+    <div id="screen-auth" class="screen-overlay">
+        <div class="auth-container">
+            <div class="brand-header">
+                <svg viewBox="0 0 24 24" width="50" height="50" stroke="currentColor" stroke-width="2" fill="none" class="brand-icon">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h1 class="brand-name">تواصل برو</h1>
+                <p class="brand-slogan">المراسلة المشفرة والآمنة</p>
+            </div>
+
+            <div class="auth-forms">
+                <!-- تسجيل الدخول بجوجل -->
+                <button id="btn-google-auth" class="btn-google">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 8v8m-4-4h8"></path>
+                    </svg>
+                    <span>المتابعة باستخدام Google</span>
+                </button>
+
+                <div class="divider">
+                    <span>أو قم بإنشاء حساب</span>
+                </div>
+
+                <!-- نموذج التسجيل اليدوي -->
+                <form id="form-register">
+                    <div class="input-wrapper">
+                        <label class="input-label">الاسم الكامل</label>
+                        <input type="text" id="reg-fullname" class="input-field" placeholder="الاسم الذي يظهر للآخرين" required>
+                    </div>
+                    <div class="input-wrapper">
+                        <label class="input-label">اسم المستخدم (يجب أن يكون فريداً)</label>
+                        <div class="username-box">
+                            <span class="at-symbol">@</span>
+                            <input type="text" id="reg-username" class="input-field no-padding-right" placeholder="username" required>
+                        </div>
+                        <span class="input-hint" id="username-status">سيتم فحص توفر اسم المستخدم...</span>
+                    </div>
+                    <div class="input-wrapper">
+                        <label class="input-label">إنشاء رمز PIN (مكون من 4 أرقام)</label>
+                        <input type="password" id="reg-pin" class="input-field" placeholder="••••" maxlength="4" pattern="\d{4}" required>
+                    </div>
+                    
+                    <button type="submit" id="btn-create-account" class="btn-primary">
+                        <span>إنشاء الحساب والمفاتيح</span>
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         3. الهيكل الرئيسي للتطبيق (Main App Container)
+    ========================================================= -->
+    <main id="app-main" class="hidden">
+        
+        <!-- الشريط الجانبي (يظهر في الشاشات الكبيرة) -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <!-- شريط التنقل العلوي للجانب -->
+            <header class="sidebar-header">
+                <h2 class="sidebar-title">الدردشات</h2>
+                <div class="sidebar-tools">
+                    <button class="icon-btn" id="btn-theme-toggle" title="المظهر">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- منطقة القوائم الرئيسية (Dynamic Views) -->
+            <div class="sidebar-content" id="sidebar-views">
+                
+                <!-- عرض الدردشات -->
+                <div class="view-pane active" id="view-chats">
+                    <div class="search-bar-container">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" class="search-icon">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="local-search-input" class="search-input" placeholder="بحث في محادثاتي...">
+                    </div>
+                    <div class="list-container" id="chats-list-container">
+                        <!-- رسالة الحالة الفارغة -->
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1" fill="none">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <p>لا توجد محادثات حالياً</p>
+                            <span>ابحث عن مستخدمين للبدء</span>
+                        </div>
+                        <!-- سيتم حقن المحادثات هنا -->
+                    </div>
+                </div>
+
+                <!-- عرض البحث عن مستخدمين (Global Search) -->
+                <div class="view-pane" id="view-search">
+                    <div class="search-bar-container highlight">
+                        <span class="at-symbol-small">@</span>
+                        <input type="text" id="global-user-search" class="search-input" placeholder="اكتب اسم المستخدم للبحث...">
+                        <button class="icon-btn action-btn" id="btn-execute-search">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="list-container" id="search-results-container">
+                        <div class="empty-state">
+                            <p>ابحث عن أصدقائك عبر المعرف الخاص بهم</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- عرض المكالمات -->
+                <div class="view-pane" id="view-calls">
+                    <div class="list-container" id="calls-list-container">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1" fill="none">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <p>سجل المكالمات فارغ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- عرض الملف الشخصي والإعدادات -->
+                <div class="view-pane" id="view-profile">
+                    <div class="profile-header-card">
+                        <div class="profile-avatar-large" id="settings-avatar">U</div>
+                        <h2 class="profile-name" id="settings-name">اسم المستخدم</h2>
+                        <p class="profile-handle" id="settings-handle">@username</p>
+                    </div>
+                    
+                    <div class="settings-list">
+                        <div class="settings-group-title">الحساب والأمان</div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                            <div class="setting-info">
+                                <h4>تغيير رمز PIN</h4>
+                                <p>حماية التطبيق عند الفتح</p>
+                            </div>
+                            <button class="btn-outline-small">تعديل</button>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                            </div>
+                            <div class="setting-info">
+                                <h4>تشفير الرسائل</h4>
+                                <p>مفاتيح E2EE نشطة</p>
+                            </div>
+                            <div class="status-badge success">مفعل</div>
+                        </div>
+
+                        <div class="settings-group-title">الخصوصية</div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h4>مؤشرات القراءة</h4>
+                                <p>ظهور علامة الصح المزدوجة</p>
+                            </div>
+                            <label class="switch-ui"><input type="checkbox" id="pref-receipts" checked><span class="slider-ui"></span></label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h4>حالة الاتصال</h4>
+                                <p>إظهار "متصل الآن"</p>
+                            </div>
+                            <label class="switch-ui"><input type="checkbox" id="pref-online" checked><span class="slider-ui"></span></label>
+                        </div>
+
+                        <div class="settings-group-title">إدارة البيانات</div>
+                        <button class="btn-danger-full" id="btn-logout">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            تسجيل الخروج وحذف البيانات
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- شريط التنقل السفلي (Bottom Navigation) -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" data-target="view-chats">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>الدردشات</span>
+                </button>
+                <button class="nav-item" data-target="view-search">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>بحث يوزر</span>
+                </button>
+                <button class="nav-item" data-target="view-calls">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                    <span>المكالمات</span>
+                </button>
+                <button class="nav-item" data-target="view-profile">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>ملفي</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- منطقة المحادثة الفعلية (Active Chat Area) -->
+        <section class="chat-container empty-selection" id="active-chat-area">
+            
+            <!-- حالة عدم اختيار محادثة -->
+            <div class="no-chat-selected">
+                <svg viewBox="0 0 24 24" width="64" height="64" stroke="currentColor" stroke-width="1" fill="none" class="brand-watermark">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h3>تواصل برو</h3>
+                <p>اختر محادثة أو ابحث عن مستخدم للبدء</p>
+                <div class="encryption-badge">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    الرسائل مشفرة بين الطرفين (End-to-End)
+                </div>
+            </div>
+
+            <!-- واجهة المحادثة النشطة (تظهر عند فتح محادثة) -->
+            <div class="active-chat-ui hidden" id="active-chat-ui">
+                <!-- هيدر المحادثة -->
+                <header class="active-chat-header">
+                    <div class="chat-header-info">
+                        <button class="icon-btn back-btn-mobile" id="btn-back-to-list">
+                            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                                <line x1="19" y1="12" x2="5" y2="12"></line>
+                                <polyline points="12 19 5 12 12 5"></polyline>
+                            </svg>
+                        </button>
+                        <div class="avatar" id="active-chat-avatar">U</div>
+                        <div class="active-chat-details">
+                            <h3 id="active-chat-name">اسم المستخدم</h3>
+                            <span class="status-text" id="active-chat-status">آخر ظهور قريباً</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-header-actions">
+                        <button class="icon-btn" id="btn-start-call" title="مكالمة صوتية">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" id="btn-start-video" title="مكالمة فيديو">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" id="btn-chat-info" title="معلومات">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- منطقة عرض الرسائل -->
+                <div class="chat-messages-scroll" id="messages-list">
+                    <div class="encryption-notice-inline">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        جميع الرسائل والمكالمات في هذه الغرفة مشفرة تماماً بتقنية E2EE. لا يمكن لأي طرف ثالث قراءتها.
+                    </div>
+                    <!-- سيتم حقن كود الرسائل ديناميكياً هنا -->
+                </div>
+
+                <!-- شريط الإدخال والرد -->
+                <footer class="chat-input-wrapper">
+                    
+                    <!-- قائمة المرفقات (تظهر عند الضغط) -->
+                    <div class="attachment-popup hidden" id="attach-popup">
+                        <button class="attach-option">
+                            <div class="attach-icon bg-blue">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </div>
+                            <span>صورة/فيديو</span>
+                        </button>
+                        <button class="attach-option">
+                            <div class="attach-icon bg-purple">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                    <polyline points="13 2 13 9 20 9"></polyline>
+                                </svg>
+                            </div>
+                            <span>مستند</span>
+                        </button>
+                        <button class="attach-option">
+                            <div class="attach-icon bg-green">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                            </div>
+                            <span>موقع جغرافي</span>
+                        </button>
+                    </div>
+
+                    <!-- شريط الأدوات الرئيسي -->
+                    <div class="input-toolbar">
+                        <button class="tool-btn" id="btn-toggle-attach" title="إرفاق">
+                            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="input-text-container">
+                            <textarea id="message-input" placeholder="اكتب رسالة مشفرة..." rows="1"></textarea>
+                        </div>
+
+                        <!-- يتغير هذا الزر بين تسجيل الصوت والإرسال -->
+                        <button class="tool-btn action-circle" id="btn-action-main">
+                            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" class="icon-mic">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" class="icon-send hidden">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </section>
+    </main>
+
+    <!-- =========================================================
+         4. النوافذ المنبثقة والإشعارات (Modals & Overlays)
+    ========================================================= -->
+    
+    <!-- نافذة الاتصال الوارد / الصادر -->
+    <div id="modal-call" class="screen-overlay hidden">
+        <div class="call-container">
+            <h3 class="call-status-text" id="call-status-indicator">جاري الاتصال المشفر...</h3>
+            <div class="call-avatar-pulse">
+                <div class="avatar large-avatar" id="call-partner-avatar">U</div>
+                <div class="pulse-ring"></div>
+                <div class="pulse-ring delay"></div>
+            </div>
+            <h2 class="call-partner-name" id="call-partner-name">اسم المستخدم</h2>
+            
+            <div class="call-actions">
+                <button class="call-btn btn-reject" id="btn-end-call">
+                    <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+                        <line x1="23" y1="1" x2="1" y2="23"></line>
+                    </svg>
+                </button>
+                <button class="call-btn btn-accept hidden" id="btn-accept-call">
+                    <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة السياق (Context Menu) تظهر عند الضغط المطول على رسالة -->
+    <div id="msg-context-menu" class="context-menu hidden">
+        <ul class="context-list">
+            <li class="ctx-item" data-action="reply">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                رد
+            </li>
+            <li class="ctx-item" data-action="copy">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                نسخ النص
+            </li>
+            <li class="ctx-item danger" data-action="delete">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                حذف الرسالة
+            </li>
+        </ul>
+    </div>
+
+    <!-- نظام التنبيهات (Toast Notifications) -->
+    <div id="toast-rack" class="toast-rack"></div>
+
+    <!-- 
+        سيتم ربط ملفات الجافاسكربت في الخطوات القادمة
+        <script type="module" src="app.js"></script>
+        <script type="module" src="database.js"></script>
+    -->
+</body>
+</html>
 
